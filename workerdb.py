@@ -6,33 +6,55 @@ import matplotlib.pyplot as plt
 class WorkerDB:
     def __init__(self):
         self.collection = []
+        self.worker = Worker()
 
-    def create_department_diagram(collection):
-        departments = [worker.department for worker in collection]
+    def create_department_diagram(self):
+        departments = [worker.department for worker in self.collection]
         data = {"Department": departments}
         df = pd.DataFrame(data)
-        
+
         department_counts = df["Department"].value_counts()
 
-        plt.bar(department_counts.index, department_counts.values)
-        plt.xlabel('Department')
-        plt.ylabel('Number of Workers')
-        plt.title('Number of Workers in Each Department')
+        plt.pie(department_counts, labels=department_counts.index, autopct='%1.1f%%')
+        plt.title('Distribution of Workers by Department')
         plt.show()
 
 
+    def generate_id(self):
+        max_id = max([i.get_id() for i in self.collection], default=0)
+        new_id = max_id + 1
+        while True:
+            yield new_id
+            new_id += 1
+
     def read_from_file(self, filename):
         with open(filename, newline='') as csv_file:
-            reader = csv.reader(csv_file, delimiter=",")  
+            reader = csv.reader(csv_file, delimiter=",")
             for row in reader:
                 try:
-                    worker_id, name, surname, department, salary = row[0], row[1], row[2], row[3], row[4]
+                    worker_id, name, surname, department, salary = row
                     worker = Worker(worker_id, name, surname, department, salary)
                     self.collection.append(worker)
+                except (ValueError, IndexError) as e:
+                    print(f"Error reading a line from the file: {e}")
 
-                except ValueError as e:
-                    print(e)
+    def add_worker(self):
+        name = self.worker.validate_alpha("Enter name: ", "Error: Name should contain only letters.")
+        surname = self.worker.validate_alpha("Enter surname: ", "Error: Surname should contain only letters.")
+        department = self.worker.validate_alpha("Enter department: ", "Error: Department should contain only letters.")
 
+        while True:
+            try:
+                salary_str = input("Enter salary: ")
+                salary = float(salary_str)
+                break
+            except ValueError:
+                print("Invalid input for salary. Please enter a valid number.")
+
+        new_id = next(self.generate_id())
+
+        worker = Worker(worker_id=new_id, name=name, surname=surname, department=department, salary=salary)
+        self.collection.append(worker)
 
 
     def write_to_file(self, filename):
@@ -43,20 +65,6 @@ class WorkerDB:
             for i in self.collection:
                 writer.writerow({"id": i.get_id(), "name": i.name, "surname": i.surname,
                                  "department": i.department, "salary": i.salary})
-
-    def add_worker(self):
-
-        name = input("Enter name: ")
-        surname = input("Enter surname: ")
-        department = input("Enter department: ")
-        salary = input("Enter salary: ")
-
-        max_id = max([int(w.get_id()) for w in self.collection], default=0)
-        new_id = max_id + 1
-
-        worker = Worker(worker_id=new_id, name=name, surname=surname, department=department, salary=salary)
-
-        self.collection.append(worker)
 
     def edit(self, id):
         for el in self.collection:
@@ -101,10 +109,10 @@ class WorkerDB:
     def d_sorted(self, field):
         getters = {
             "ID": lambda el: el._ID,
-            "Name": lambda el: el.name,
-            "Surname": lambda el: el.surname,
-            "Depart": lambda el: el.department,
-            "Salary": lambda el: el.salary,
+            "Name": lambda el: el.name.strip(),
+            "Surname": lambda el: el.surname.strip(),
+            "Depart": lambda el: el.department.strip(),
+            "Salary": lambda el: el.salary.strip(),
          }
         getter = getters.get(field)
 
@@ -126,19 +134,20 @@ class WorkerDB:
     def search(self, field, value):
         getters = {
             "ID": lambda el: el._ID,
-            "Name": lambda el: el.name,
-            "Surname": lambda el: el.surname,
-            "Depart": lambda el: el.department,
-            "Salary": lambda el: el.salary,
+            "Name": lambda el: el.name.strip(),
+            "Surname": lambda el: el.surname.strip(),
+            "Depart": lambda el: el.department.strip(),
+            "Salary": lambda el: el.salary.strip(),
         }
         getter = getters.get(field)
 
         if getter is not None:
-            results = [
-                el for el in self.collection 
-                    if str(getter(el)) == str(value)]
-            if results:
-                for result in results:
+            found_workers = [
+                el for el in self.collection
+                if str(getter(el)).lower() == str(value).lower()
+            ]
+            if found_workers:
+                for result in found_workers:
                     result.display_worker()
             else:
                 print("No matching records found.")

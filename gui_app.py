@@ -1,7 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox, filedialog
+from tkinter import simpledialog, messagebox, filedialog
 from workerdb import WorkerDB
-
 
 class GUIApp:
     def __init__(self, root):
@@ -14,49 +13,38 @@ class GUIApp:
         self.menu_frame = tk.Frame(root)
         self.menu_frame.pack()
 
-        self.menu_label = tk.Label(self.menu_frame, text="Choose an option:")
-        self.menu_label.grid(row=0, column=0, pady=10)
+        # Add buttons with corresponding functionality
+        self.add_button("Add Worker", lambda: self.collection.add_worker(), messagebox.showinfo, "Success", "Worker added successfully!")
+        self.add_button("Edit Worker", lambda: self.collection.edit(simpledialog.askinteger("Edit Worker", "Enter worker ID you want to be changed:")), 
+                        messagebox.showinfo, "Success", "Worker edited successfully!")
+        self.add_button("Delete Worker", lambda: self.collection.delete(simpledialog.askinteger("Delete Worker", "Enter worker ID you want to be deleted:")), 
+                        messagebox.showinfo, "Success", "Worker deleted successfully!")
+        self.add_button("Display Workers", self.collection.display)
+        self.add_button("Write to File", lambda: self.collection.write_to_file('result.csv'), messagebox.showinfo, "Success", "Data written to file successfully!")
+        self.add_button("Sort Workers", lambda: self.collection.d_sorted(simpledialog.askstring("Sort Workers", "Enter the field by which the list will be sorted:")), self.collection.display)
+        self.add_button("Search Workers", self.search_worker)
+        self.add_button("Department Diagram", self.collection.create_department_diagram)
+        self.add_button("Read from File", lambda: self.collection.read_from_file(self.ask_for_file()), messagebox.showinfo, "Success", "Data read from file successfully!")
 
-        self.choice_var = tk.StringVar()
-        self.choice_entry = tk.Entry(self.menu_frame, textvariable=self.choice_var)
-        self.choice_entry.grid(row=0, column=1, pady=10)
+    def add_button(self, text, command, info_function=None, *info_args):
+        def wrapped_command():
+            command()
+            if info_function:
+                info_function(*info_args)
 
-        self.submit_button = tk.Button(self.menu_frame, text="Submit", command=self.handle_choice)
-        self.submit_button.grid(row=0, column=2, pady=10)
+        btn = tk.Button(self.menu_frame, text=text, command=wrapped_command)
+        btn.pack(pady=10)
 
     def ask_for_file(self):
         file_path = filedialog.askopenfilename(title="Select File", filetypes=[("CSV files", "*.csv")])
         return file_path
+    def search_worker(self):
+        field = simpledialog.askstring("Search Workers", "Enter the field for search:")
+        value = simpledialog.askstring("Search Workers", f"Enter the value to search for in {field}:")
+        self.collection.search(field, value)
 
-    def handle_choice(self):
-        choice = self.choice_var.get()
-        if choice == "1":
-            self.collection.add_worker()
-            messagebox.showinfo("Success", "Worker added successfully!")
-        elif choice == "2":
-            id_num = int(input("Enter worker ID you want to be changed: "))
-            self.collection.edit(id_num)
-            messagebox.showinfo("Success", "Worker edited successfully!")
-        elif choice == "3":
-            id_num = int(input("Enter worker ID you want to be deleted: "))
-            self.collection.delete(id_num)
-            messagebox.showinfo("Success", "Worker deleted successfully!")
-        elif choice == "4":
-            self.collection.display()
-        elif choice == "5":
-            self.collection.write_to_file('result.csv')
-            messagebox.showinfo("Success", "Data written to file successfully!")
-        elif choice == "6":
-            field = input("Enter the field by which the list will be sorted: ")
-            self.collection.d_sorted(field)
-            self.collection.display()
-        elif choice == "7":
-            field = input("Enter the field for search:")
-            value = input(f"Enter the value to search for in {field}: ")
-            self.collection.search(field, value)
-        elif choice == "8":
-            self.collection.create_department_diagram()
 
-        elif choice == "9":
-            self.collection.read_from_file(self.ask_for_file())
-            messagebox.showinfo("Success", "Data read from file successfully!")
+# Використання класу
+root = tk.Tk()
+app = GUIApp(root)
+root.mainloop()
